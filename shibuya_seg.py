@@ -25,11 +25,6 @@ smooth = 1e-12
 
 # big image shape = 3456 x 3456
 # proposed patch size = 128 x 128
-img = tiff.imread(img_path[0])[row_range[0]:row_range[-1],col_range[0]:col_range[-1],:]
-label = plt.imread(label_path[0])[row_range[0]:row_range[-1],col_range[0]:col_range[-1]]
-
-tiff.imsave('/Users/kaku/Desktop/r_img.tif', img)
-tiff.imsave('/Users/kaku/Desktop/a_img.tif', label)
 
 def image_get(img, patch_size):
     stride = patch_size//2
@@ -129,22 +124,44 @@ label_path = glob.glob(os.path.join(data_path, 'a*.tif'))
 row_range = [26, -26]
 col_range = [649, -749]
 
+#img = tiff.imread(img_path[0])[row_range[0]:row_range[-1],col_range[0]:col_range[-1],:]
+#label = plt.imread(label_path[0])[row_range[0]:row_range[-1],col_range[0]:col_range[-1]]
+
+#tiff.imsave('/Users/kaku/Desktop/r_img.tif', img)
+#tiff.imsave('/Users/kaku/Desktop/a_img.tif', label)
+img = tiff.imread(img_path[0])
+label = plt.imread(label_path[0])
+
 PATCH_SIZE = 128
 N_CLASS = 12
 CV_RATIO = 0.2
 BATCH_SIZE = 32
-EPOCH = 2
+EPOCH = 10
 
 imgs = image_get(img, PATCH_SIZE)
 labels = image_get(label, PATCH_SIZE)
 labels = to_categorical(labels, 12)
 
-X_train, X_test, y_train, y_test = train_test_split(imgs, labels, test_size=0.4, random_state=0)
-
+X_train, X_test, y_train, y_test = train_test_split(imgs, labels, test_size=0.1, random_state=0)
 model = get_unet(PATCH_SIZE, N_CLASS)
+History = model.fit(x = X_train, y = y_train, batch_size=BATCH_SIZE, epochs = EPOCH, verbose=1, validation_split=CV_RATIO)
 
-History = model.fit(x = X_train, y = y_train, batch_size=BATCH_SIZE, nb_epoch = EPOCH, verbose=1, validation_split=CV_RATIO)
-        
+result = model.predict(imgs)
+
+result_img = np.zeros_like(label)
+
+for i in range(img.shape[0] // PATCH_SIZE):
+    for j in range(img.shape[1] // PATCH_SIZE):
+        result_img[i*PATCH_SIZE:(i+1)*PATCH_SIZE,j*PATCH_SIZE:(j+1)*PATCH_SIZE] = np.argmax(result[i*2*53 + j*2],-1)
+
+plt.imshow(result_img)
+#new_image = np.zeros((3,result_img.shape[0],result_img.shape[1]))
+#new_image[0] = result_img
+#new_image[1] = result_img
+#new_image[2] = result_img
+#new_image = np.moveaxis(new_image,0,-1)
+#new_image /= 11
+
 
 
 
